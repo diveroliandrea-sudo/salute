@@ -1,0 +1,219 @@
+/* ============================================================
+   app.css — Salute Famiglia
+   Stile ispirato a Windows: pulito, strutturato, blue/grey/white
+   ============================================================ */
+
+/* ── Variabili ─────────────────────────────────────────────── */
+:root {
+  --win-blue:       #0078d4;
+  --win-blue-dark:  #005a9e;
+  --win-blue-light: #deecf9;
+  --win-gray:       #f3f3f3;
+  --win-gray-mid:   #e1e1e1;
+  --win-gray-dark:  #767676;
+  --win-white:      #ffffff;
+  --sidebar-width:  240px;
+  --navbar-height:  48px;
+  --font-base:      'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Reset & Base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body.app-body {
+  font-family: var(--font-base);
+  background: var(--win-gray);
+  color: #201f1e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────── */
+.app-navbar {
+  background: var(--win-blue);
+  height: var(--navbar-height);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.app-navbar .navbar-brand { font-size: .95rem; letter-spacing: .02em; }
+.app-navbar .nav-link { font-size: .875rem; color: rgba(255,255,255,.88) !important; }
+.app-navbar .nav-link:hover { color: #fff !important; }
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.app-sidebar {
+  width: var(--sidebar-width);
+  min-height: calc(100vh - var(--navbar-height));
+  background: var(--win-white);
+  border-right: 1px solid var(--win-gray-mid);
+  flex-shrink: 0;
+  transition: width .2s ease;
+  overflow-y: auto;
+}
+.app-sidebar.collapsed { width: 56px; }
+.app-sidebar.collapsed .sidebar-header,
+.app-sidebar.collapsed .nav-link span,
+.app-sidebar.collapsed .nav-link { font-size: 0; }
+.app-sidebar.collapsed .nav-link i { font-size: 1.2rem; margin: 0 auto; }
+
+.sidebar-header { font-size: .7rem; color: var(--win-gray-dark); }
+
+.sidebar-link {
+  color: #201f1e;
+  border-radius: 4px;
+  padding: .38rem .75rem;
+  font-size: .875rem;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.sidebar-link:hover  { background: var(--win-blue-light); color: var(--win-blue-dark); }
+.sidebar-link.active { background: var(--win-blue-light); color: var(--win-blue) !important; font-weight: 600; }
+
+/* ── Main content ────────────────────────────────────────────── */
+.app-main {
+  min-height: calc(100vh - var(--navbar-height) - 38px);
+  background: var(--win-gray);
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.app-footer {
+  background: var(--win-white);
+  font-size: .78rem;
+  flex-shrink: 0;
+}
+
+/* ── Windows-style cards ─────────────────────────────────────── */
+.win-card {
+  background: var(--win-white);
+  border: 1px solid var(--win-gray-mid);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.win-card .win-card-header {
+  background: var(--win-blue);
+  color: #fff;
+  padding: .55rem 1rem;
+  border-radius: 5px 5px 0 0;
+  font-size: .9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.win-card .win-card-body { padding: 1rem; }
+
+/* ── Page title bar ─────────────────────────────────────────── */
+.page-titlebar {
+  background: var(--win-white);
+  border: 1px solid var(--win-gray-mid);
+  border-radius: 6px;
+  padding: .75rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.page-titlebar h1 { font-size: 1.2rem; margin: 0; font-weight: 600; color: var(--win-blue-dark); }
+
+/* ── DataTables tweaks ───────────────────────────────────────── */
+.dataTables_wrapper .dt-buttons { margin-bottom: .5rem; }
+.dataTables_wrapper .dt-buttons .btn { font-size: .8rem; padding: .25rem .6rem; }
+table.dataTable thead th {
+  background: var(--win-blue);
+  color: #fff;
+  font-weight: 600;
+  font-size: .82rem;
+  border-bottom: none !important;
+}
+table.dataTable tbody tr:hover { background: var(--win-blue-light) !important; }
+table.dataTable { font-size: .875rem; }
+
+/* ── Status badges ───────────────────────────────────────────── */
+.badge-programmato  { background: #0078d4; }
+.badge-completato   { background: #107c10; }
+.badge-annullato    { background: #a80000; }
+.badge-rinviato     { background: #ca5010; }
+.badge-da_utilizzare{ background: #0078d4; }
+.badge-utilizzata   { background: #107c10; }
+.badge-scaduta      { background: #a80000; }
+
+/* ── Auth pages ──────────────────────────────────────────────── */
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--win-blue) 0%, var(--win-blue-dark) 100%);
+}
+.auth-card {
+  background: var(--win-white);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  padding: 2rem;
+  width: 100%;
+  max-width: 420px;
+}
+.auth-logo { text-align: center; margin-bottom: 1.5rem; color: var(--win-blue); }
+.auth-logo i { font-size: 3rem; }
+
+/* ── Dashboard member cards ──────────────────────────────────── */
+.member-card {
+  background: var(--win-white);
+  border: 2px solid var(--win-gray-mid);
+  border-radius: 8px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  text-align: center;
+}
+.member-card:hover, .member-card.selected {
+  border-color: var(--win-blue);
+  box-shadow: 0 0 0 3px var(--win-blue-light);
+}
+.member-card .avatar-circle {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--win-blue);
+  color: #fff;
+  font-size: 1.6rem;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto .75rem;
+}
+
+/* ── Medication schedule table ───────────────────────────────── */
+.schedule-hour-badge {
+  background: var(--win-blue);
+  color: #fff;
+  border-radius: 4px;
+  padding: .15rem .5rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.schedule-row-drug { font-size: .85rem; }
+
+/* ── Vital params ────────────────────────────────────────────── */
+.vital-card {
+  border-left: 4px solid var(--win-blue);
+  background: var(--win-white);
+  padding: .75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: .75rem;
+}
+
+/* ── Document viewer ─────────────────────────────────────────── */
+.doc-viewer-frame { width: 100%; height: 75vh; border: 1px solid var(--win-gray-mid); border-radius: 4px; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .app-sidebar { display: none !important; }
+  .app-sidebar.mobile-show { display: flex !important; position: fixed; z-index: 1020; height: 100%; }
+}
+
+/* ── Utilities ───────────────────────────────────────────────── */
+.fs-7  { font-size: .8rem !important; }
+.text-win-blue { color: var(--win-blue) !important; }
+.bg-win-blue   { background-color: var(--win-blue) !important; }
+.cursor-pointer { cursor: pointer; }

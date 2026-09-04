@@ -1,0 +1,17 @@
+# Lock file installazione/migrazione
+install.lock
+migrate_*.lock
+
+# Upload utenti (file binari non versionati)
+uploads/
+
+# Environment / configurazione locale sensibile
+# (se in futuro si usa un .env)
+.env
+.env.*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
