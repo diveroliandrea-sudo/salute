@@ -180,20 +180,28 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 
         <!-- Anteprima inline -->
         <?php
-        // Costruiamo l'anteprima solo se il file è in DB (già verificato sopra)
-        // Per evitare di caricare il BLOB due volte, usiamo un iframe che chiama view.php
-        $viewUrl = APP_URL . '/modules/documents/view.php?modulo=piano_terapeutico&id=' . $piano['id'];
         $isPdf   = str_contains($piano['file_mime'] ?? '', 'pdf');
         $isImg   = str_starts_with($piano['file_mime'] ?? '', 'image/');
+
+        // Carica il BLOB dal DB e codificalo in base64 inline
+        // (evita una seconda richiesta HTTP e problemi con iframe/header)
+        if ($isPdf || $isImg) {
+            $blobStmt = db()->prepare('SELECT file_dati, file_mime FROM piani_terapeutici WHERE id = ?');
+            $blobStmt->execute([$piano['id']]);
+            $blob = $blobStmt->fetch();
+            $b64src = $blob && $blob['file_dati']
+                ? 'data:' . $blob['file_mime'] . ';base64,' . base64_encode($blob['file_dati'])
+                : null;
+        }
         ?>
-        <?php if ($isPdf): ?>
-        <iframe src="<?= $viewUrl ?>&embed=1"
+        <?php if ($isPdf && !empty($b64src)): ?>
+        <iframe src="<?= $b64src ?>"
                 class="doc-viewer-frame"
-                style="height:60vh"
+                style="height:60vh;width:100%;border:0"
                 title="Piano Terapeutico PDF"></iframe>
-        <?php elseif ($isImg): ?>
+        <?php elseif ($isImg && !empty($b64src)): ?>
         <div class="text-center mt-2">
-          <img src="<?= $viewUrl ?>&embed=1"
+          <img src="<?= $b64src ?>"
                class="img-fluid rounded border"
                style="max-height:55vh;cursor:zoom-in"
                id="imgPreview"
@@ -201,7 +209,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
         </div>
         <script>
         document.getElementById('imgPreview').addEventListener('click', function(){
-          window.open('<?= $viewUrl ?>', '_blank');
+          window.open('<?= APP_URL ?>/modules/documents/view.php?modulo=piano_terapeutico&id=<?= $piano['id'] ?>', '_blank');
         });
         </script>
         <?php endif; ?>
