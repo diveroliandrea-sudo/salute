@@ -35,6 +35,11 @@ $pageTitle = $pageTitle ?? APP_NAME;
     <?= APP_NAME ?>
   </a>
 
+  <!-- Hamburger per aprire la sidebar su mobile -->
+  <button class="btn btn-sm btn-outline-light me-2 d-lg-none" id="sidebarToggleMobile" type="button" aria-label="Menu">
+    <i class="bi bi-list fs-5"></i>
+  </button>
+
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -89,6 +94,9 @@ $pageTitle = $pageTitle ?? APP_NAME;
     <?php endif; ?>
   </div>
 </nav>
+
+<!-- ── OVERLAY MOBILE (chiude la sidebar cliccando fuori) ───── -->
+<div id="sidebarOverlay"></div>
 
 <!-- ── WRAPPER ──────────────────────────────────────────────── -->
 <div class="d-flex">
