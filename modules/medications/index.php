@@ -337,7 +337,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 <div class="win-card mt-4">
   <div class="win-card-header"><i class="bi bi-download me-2"></i>Export Medicinali &amp; Somministrazioni</div>
   <div class="win-card-body p-0">
-    <table id="tblExport" class="table table-sm table-bordered table-hover mb-0" style="font-size:.8rem;width:100%">
+    <table id="tblExport" class="table table-sm table-bordered table-hover mb-0 dt-table" style="font-size:.8rem;width:100%">
       <thead>
         <tr>
           <th>Farmaco</th>
@@ -408,36 +408,15 @@ $(function () {
   /* Blocca propagazione sui pulsanti azione */
   /* Nessun stopPropagation generico — ogni handler lo gestisce da solo */
 
-  /* Export DataTables */
-  var dtExport = $('#tblExport').DataTable({
-    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
-    dom: "<'row mb-2'<'col-12'B>>" +
-         "<'row'<'col-12'tr>>" +
-         "<'row mt-2'<'col-sm-5'i><'col-sm-7'p>>",
-    buttons: [
-      { extend: 'excelHtml5', text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
-        className: 'btn btn-sm btn-outline-success',
-        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
-        exportOptions: { columns: ':all' } },
-      { extend: 'pdfHtml5', text: '<i class="bi bi-file-earmark-pdf me-1"></i>PDF',
-        className: 'btn btn-sm btn-outline-danger',
-        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
-        orientation: 'landscape', pageSize: 'A4',
-        exportOptions: { columns: ':all' } },
-      { extend: 'csvHtml5', text: '<i class="bi bi-filetype-csv me-1"></i>CSV',
-        className: 'btn btn-sm btn-outline-secondary',
-        exportOptions: { columns: ':all' } },
-      { extend: 'print', text: '<i class="bi bi-printer me-1"></i>Stampa',
-        className: 'btn btn-sm btn-outline-secondary',
-        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
-        exportOptions: { columns: ':all' } }
-    ],
-    pageLength: 25,
+  /* Export DataTables — stessa config di dtDefaults di app.js */
+  var exportOpts = $.extend(true, {}, dtDefaults, {
     order: [[0,'asc'],[6,'desc']],
-    columnDefs: [
-      { targets: 6, orderDataType: 'dom-data-order' }
-    ]
+    columnDefs: [{ targets: 6, orderDataType: 'dom-data-order' }],
+    pageLength: 25
   });
+  if (!$.fn.DataTable.isDataTable('#tblExport')) {
+    $('#tblExport').DataTable(exportOpts);
+  }
   $('#btnSalvaFarmaco').on('click', function () {
     var $btn = $(this).prop('disabled', true)
       .html('<span class="spinner-border spinner-border-sm me-1"></span>Salvataggio…');
