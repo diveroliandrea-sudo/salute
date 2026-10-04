@@ -333,6 +333,70 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 
 <?php endif; ?>
 
+<!-- ── Export ─────────────────────────────────────────────────── -->
+<div class="win-card mt-4">
+  <div class="win-card-header"><i class="bi bi-download me-2"></i>Export</div>
+  <div class="win-card-body">
+    <p class="text-muted small mb-3">Esporta l'elenco completo dei medicinali e delle somministrazioni registrate.</p>
+    <div id="exportButtons"></div>
+  </div>
+</div>
+
+<!-- Tabella dati per export — nascosta visivamente, usata solo da DataTables -->
+<table id="tblExport" style="display:none">
+  <thead>
+    <tr>
+      <th>Farmaco</th>
+      <th>Principio Attivo</th>
+      <th>Dosaggio</th>
+      <th>Forma</th>
+      <th>Ogni quanto</th>
+      <th>Stato</th>
+      <th data-sort="datetime-it">Data Somministrazione</th>
+      <th>Quantità</th>
+      <th>Modalità</th>
+      <th>Zona</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach ($farmaci as $farm):
+        $fid  = (int)$farm['id'];
+        $somm = $somPerFarmaco[$fid] ?? [];
+        $stato = $farm['attivo'] ? 'Attivo' : 'Sospeso';
+        if (empty($somm)): ?>
+    <tr>
+      <td><?= h($farm['nome_farmaco']) ?></td>
+      <td><?= h($farm['principio_attivo'] ?? '') ?></td>
+      <td><?= h($farm['dosaggio'] ?? '') ?></td>
+      <td><?= h($farm['forma'] ?? '') ?></td>
+      <td><?= h($farm['note_assunzione'] ?? '') ?></td>
+      <td><?= $stato ?></td>
+      <td data-order="">—</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td>
+    </tr>
+        <?php else: foreach ($somm as $s):
+            // data-order in formato ISO per ordinamento corretto
+            $iso = date('Y-m-d H:i', strtotime($s['data_ora']));
+            $ita = date('d/m/Y H:i', strtotime($s['data_ora']));
+        ?>
+    <tr>
+      <td><?= h($farm['nome_farmaco']) ?></td>
+      <td><?= h($farm['principio_attivo'] ?? '') ?></td>
+      <td><?= h($farm['dosaggio'] ?? '') ?></td>
+      <td><?= h($farm['forma'] ?? '') ?></td>
+      <td><?= h($farm['note_assunzione'] ?? '') ?></td>
+      <td><?= $stato ?></td>
+      <td data-order="<?= $iso ?>"><?= $ita ?></td>
+      <td><?= h($s['quantita']) ?></td>
+      <td><?= h($s['modalita'] ?? '') ?></td>
+      <td><?= h($s['zona'] ?? '') ?></td>
+      <td><?= h($s['note'] ?? '') ?></td>
+    </tr>
+        <?php endforeach; endif; endforeach; ?>
+  </tbody>
+</table>
+
 <?php require_once dirname(__DIR__, 2) . '/includes/footer.php'; ?>
 
 <script>
@@ -349,7 +413,40 @@ $(function () {
   /* Blocca propagazione sui pulsanti azione */
   /* Nessun stopPropagation generico — ogni handler lo gestisce da solo */
 
-  /* Salva farmaco */
+  /* Export DataTables — solo bottoni, tabella nascosta */
+  var dtExport = $('#tblExport').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
+    dom: 'B',
+    buttons: [
+      { extend: 'excelHtml5', text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+        className: 'btn btn-sm btn-outline-success',
+        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
+        exportOptions: { columns: ':all' } },
+      { extend: 'pdfHtml5',   text: '<i class="bi bi-file-earmark-pdf me-1"></i>PDF',
+        className: 'btn btn-sm btn-outline-danger',
+        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
+        orientation: 'landscape', pageSize: 'A4',
+        exportOptions: { columns: ':all' } },
+      { extend: 'csvHtml5',   text: '<i class="bi bi-filetype-csv me-1"></i>CSV',
+        className: 'btn btn-sm btn-outline-secondary',
+        exportOptions: { columns: ':all' } },
+      { extend: 'print',      text: '<i class="bi bi-printer me-1"></i>Stampa',
+        className: 'btn btn-sm btn-outline-secondary',
+        title: 'Medicinali — <?= h($membro['nome'].' '.$membro['cognome']) ?>',
+        exportOptions: { columns: ':all' } }
+    ],
+    paging: false,
+    searching: false,
+    info: false,
+    ordering: true,
+    order: [[0,'asc'],[6,'desc']],
+    columnDefs: [
+      // Colonna 6 = Data Somministrazione: usa data-order (ISO) per l'ordinamento
+      { targets: 6, orderDataType: 'dom-data-order' }
+    ]
+  });
+  // Sposta i bottoni nel div dedicato
+  dtExport.buttons().container().appendTo('#exportButtons');
   $('#btnSalvaFarmaco').on('click', function () {
     var $btn = $(this).prop('disabled', true)
       .html('<span class="spinner-border spinner-border-sm me-1"></span>Salvataggio…');

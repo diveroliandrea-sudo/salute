@@ -243,4 +243,13 @@ $(function () {
     new bootstrap.Tooltip(this);
   });
 
+  /* ── DataTables: plugin ordinamento tramite data-order ────────── */
+  if ($.fn.dataTable) {
+    $.fn.dataTable.ext.order['dom-data-order'] = function (settings, col) {
+      return this.api().column(col, { order: 'index' }).nodes().map(function (td) {
+        return $(td).data('order') || $(td).attr('data-order') || '';
+      });
+    };
+  }
+
 });
