@@ -338,64 +338,63 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
   <div class="win-card-header"><i class="bi bi-download me-2"></i>Export</div>
   <div class="win-card-body">
     <p class="text-muted small mb-3">Esporta l'elenco completo dei medicinali e delle somministrazioni registrate.</p>
-    <div id="exportButtons"></div>
+    <div id="exportButtons" class="mb-3"></div>
+    <div class="table-responsive">
+    <table id="tblExport" class="table table-sm table-bordered table-hover" style="font-size:.8rem">
+      <thead>
+        <tr>
+          <th>Farmaco</th>
+          <th>Principio Attivo</th>
+          <th>Dosaggio</th>
+          <th>Forma</th>
+          <th>Ogni quanto</th>
+          <th>Stato</th>
+          <th>Data Somministrazione</th>
+          <th>Quantità</th>
+          <th>Modalità</th>
+          <th>Zona</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($farmaci as $farm):
+            $fid  = (int)$farm['id'];
+            $somm = $somPerFarmaco[$fid] ?? [];
+            $stato = $farm['attivo'] ? 'Attivo' : 'Sospeso';
+            if (empty($somm)): ?>
+        <tr>
+          <td><?= h($farm['nome_farmaco']) ?></td>
+          <td><?= h($farm['principio_attivo'] ?? '') ?></td>
+          <td><?= h($farm['dosaggio'] ?? '') ?></td>
+          <td><?= h($farm['forma'] ?? '') ?></td>
+          <td><?= h($farm['note_assunzione'] ?? '') ?></td>
+          <td><?= $stato ?></td>
+          <td data-order="">—</td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+            <?php else: foreach ($somm as $s):
+                $iso = date('Y-m-d H:i', strtotime($s['data_ora']));
+                $ita = date('d/m/Y H:i', strtotime($s['data_ora']));
+            ?>
+        <tr>
+          <td><?= h($farm['nome_farmaco']) ?></td>
+          <td><?= h($farm['principio_attivo'] ?? '') ?></td>
+          <td><?= h($farm['dosaggio'] ?? '') ?></td>
+          <td><?= h($farm['forma'] ?? '') ?></td>
+          <td><?= h($farm['note_assunzione'] ?? '') ?></td>
+          <td><?= $stato ?></td>
+          <td data-order="<?= $iso ?>"><?= $ita ?></td>
+          <td><?= h($s['quantita']) ?></td>
+          <td><?= h($s['modalita'] ?? '') ?></td>
+          <td><?= h($s['zona'] ?? '') ?></td>
+          <td><?= h($s['note'] ?? '') ?></td>
+        </tr>
+            <?php endforeach; endif; endforeach; ?>
+      </tbody>
+    </table>
+    </div>
   </div>
 </div>
-
-<!-- Tabella dati per export — nascosta visivamente, usata solo da DataTables -->
-<table id="tblExport" style="display:none">
-  <thead>
-    <tr>
-      <th>Farmaco</th>
-      <th>Principio Attivo</th>
-      <th>Dosaggio</th>
-      <th>Forma</th>
-      <th>Ogni quanto</th>
-      <th>Stato</th>
-      <th data-sort="datetime-it">Data Somministrazione</th>
-      <th>Quantità</th>
-      <th>Modalità</th>
-      <th>Zona</th>
-      <th>Note</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php foreach ($farmaci as $farm):
-        $fid  = (int)$farm['id'];
-        $somm = $somPerFarmaco[$fid] ?? [];
-        $stato = $farm['attivo'] ? 'Attivo' : 'Sospeso';
-        if (empty($somm)): ?>
-    <tr>
-      <td><?= h($farm['nome_farmaco']) ?></td>
-      <td><?= h($farm['principio_attivo'] ?? '') ?></td>
-      <td><?= h($farm['dosaggio'] ?? '') ?></td>
-      <td><?= h($farm['forma'] ?? '') ?></td>
-      <td><?= h($farm['note_assunzione'] ?? '') ?></td>
-      <td><?= $stato ?></td>
-      <td data-order="">—</td>
-      <td>—</td><td>—</td><td>—</td><td>—</td>
-    </tr>
-        <?php else: foreach ($somm as $s):
-            // data-order in formato ISO per ordinamento corretto
-            $iso = date('Y-m-d H:i', strtotime($s['data_ora']));
-            $ita = date('d/m/Y H:i', strtotime($s['data_ora']));
-        ?>
-    <tr>
-      <td><?= h($farm['nome_farmaco']) ?></td>
-      <td><?= h($farm['principio_attivo'] ?? '') ?></td>
-      <td><?= h($farm['dosaggio'] ?? '') ?></td>
-      <td><?= h($farm['forma'] ?? '') ?></td>
-      <td><?= h($farm['note_assunzione'] ?? '') ?></td>
-      <td><?= $stato ?></td>
-      <td data-order="<?= $iso ?>"><?= $ita ?></td>
-      <td><?= h($s['quantita']) ?></td>
-      <td><?= h($s['modalita'] ?? '') ?></td>
-      <td><?= h($s['zona'] ?? '') ?></td>
-      <td><?= h($s['note'] ?? '') ?></td>
-    </tr>
-        <?php endforeach; endif; endforeach; ?>
-  </tbody>
-</table>
 
 <?php require_once dirname(__DIR__, 2) . '/includes/footer.php'; ?>
 
