@@ -78,13 +78,44 @@ $(function () {
     });
   });
 
-  /* ── Sidebar toggle ─────────────────────────────────────────── */
+  /* ── Sidebar toggle desktop ─────────────────────────────────── */
   $('#sidebarToggle').on('click', function () {
     $('#sidebar').toggleClass('collapsed');
     // Ricalcola colonne di tutte le DT visibili dopo toggle sidebar
     setTimeout(function () {
       $.each(dtInstances, function (id, dt) { dt.columns.adjust(); });
     }, 300);
+  });
+
+  /* ── Sidebar toggle mobile ───────────────────────────────────── */
+  function openMobileSidebar() {
+    $('#sidebar').addClass('mobile-show');
+    $('#sidebarOverlay').addClass('active');
+    $('body').css('overflow', 'hidden'); // blocca scroll pagina
+  }
+
+  function closeMobileSidebar() {
+    $('#sidebar').removeClass('mobile-show');
+    $('#sidebarOverlay').removeClass('active');
+    $('body').css('overflow', '');
+  }
+
+  $('#sidebarToggleMobile').on('click', function () {
+    if ($('#sidebar').hasClass('mobile-show')) {
+      closeMobileSidebar();
+    } else {
+      openMobileSidebar();
+    }
+  });
+
+  // Chiude cliccando sull'overlay
+  $('#sidebarOverlay').on('click', closeMobileSidebar);
+
+  // Chiude quando si clicca un link nella sidebar (navigazione mobile)
+  $('#sidebar').on('click', '.sidebar-link', function () {
+    if (window.innerWidth < 992) {
+      closeMobileSidebar();
+    }
   });
 
   /* ── Confirm delete ─────────────────────────────────────────── */
@@ -128,22 +159,59 @@ $(function () {
     $('#data_fine_row').addClass('opacity-50');
   }
 
-  /* ── Aggiungi riga orario farmaco ────────────────────────────── */
+  /* ── Aggiungi riga orario farmaco con giorni ─────────────────── */
   var orarioCount = parseInt($('#orario_count').val()) || 0;
+
+  var giorniLabels = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+  function buildOrarioRow(idx) {
+    var giorni = '';
+    $.each(giorniLabels, function(_, g) {
+      giorni += '<div class="form-check form-check-inline me-0">'
+        + '<input class="form-check-input" type="checkbox"'
+        + ' name="orari[' + idx + '][giorni][]"'
+        + ' id="g_' + idx + '_' + g + '" value="' + g + '" checked>'
+        + '<label class="form-check-label small" for="g_' + idx + '_' + g + '">' + g + '</label>'
+        + '</div>';
+    });
+
+    return '<div class="orario-row card mb-3 border-0 bg-light" id="orario_row_' + idx + '">'
+      + '<div class="card-body py-2 px-3">'
+      + '<div class="row g-2 align-items-start">'
+
+      + '<div class="col-md-2">'
+      + '<label class="form-label form-label-sm fw-semibold mb-1">Ora</label>'
+      + '<input type="time" name="orari[' + idx + '][ora]" class="form-control form-control-sm" required>'
+      + '</div>'
+
+      + '<div class="col-md-2">'
+      + '<label class="form-label form-label-sm fw-semibold mb-1">Quantità</label>'
+      + '<input type="text" name="orari[' + idx + '][quantita]" class="form-control form-control-sm"'
+      +   ' placeholder="es. 1" value="1">'
+      + '</div>'
+
+      + '<div class="col-md-4">'
+      + '<label class="form-label form-label-sm fw-semibold mb-1">Note orario</label>'
+      + '<input type="text" name="orari[' + idx + '][note]" class="form-control form-control-sm"'
+      +   ' placeholder="es. dopo i pasti">'
+      + '</div>'
+
+      + '<div class="col-md-3">'
+      + '<label class="form-label form-label-sm fw-semibold mb-1">Giorni</label>'
+      + '<div class="d-flex flex-wrap gap-1">' + giorni + '</div>'
+      + '</div>'
+
+      + '<div class="col-md-1 d-flex align-items-end justify-content-end">'
+      + '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-orario"'
+      +   ' data-row="' + idx + '"><i class="bi bi-trash"></i></button>'
+      + '</div>'
+
+      + '</div></div></div>';
+  }
 
   $('#btn_add_orario').on('click', function () {
     orarioCount++;
-    var html = '<div class="row g-2 align-items-center orario-row mb-2" id="orario_row_' + orarioCount + '">'
-      + '<div class="col-md-3"><input type="time" name="orari[' + orarioCount + '][ora]"'
-      +   ' class="form-control form-control-sm" required></div>'
-      + '<div class="col-md-3"><input type="text" name="orari[' + orarioCount + '][quantita]"'
-      +   ' class="form-control form-control-sm" placeholder="Quantità es. 1" value="1"></div>'
-      + '<div class="col-md-4"><input type="text" name="orari[' + orarioCount + '][note]"'
-      +   ' class="form-control form-control-sm" placeholder="Note orario"></div>'
-      + '<div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-orario"'
-      +   ' data-row="' + orarioCount + '"><i class="bi bi-trash"></i></button></div>'
-      + '</div>';
-    $('#orari_container').append(html);
+    $('#orari_container').append(buildOrarioRow(orarioCount));
     $('#orario_count').val(orarioCount);
   });
 

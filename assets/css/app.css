@@ -208,12 +208,125 @@ table.dataTable { font-size: .875rem; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
-  .app-sidebar { display: none !important; }
-  .app-sidebar.mobile-show { display: flex !important; position: fixed; z-index: 1020; height: 100%; }
+  .app-sidebar {
+    display: flex !important;          /* sempre nel DOM */
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    height: calc(100vh - var(--navbar-height));
+    z-index: 1040;
+    transform: translateX(-100%);      /* nascosta fuori schermo */
+    transition: transform .25s ease, box-shadow .25s ease;
+    box-shadow: none;
+  }
+  .app-sidebar.mobile-show {
+    transform: translateX(0);          /* visibile */
+    box-shadow: 4px 0 16px rgba(0,0,0,.25);
+  }
 }
+
+/* ── Overlay mobile ──────────────────────────────────────────── */
+#sidebarOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1039;
+}
+#sidebarOverlay.active { display: block; }
 
 /* ── Utilities ───────────────────────────────────────────────── */
 .fs-7  { font-size: .8rem !important; }
 .text-win-blue { color: var(--win-blue) !important; }
 .bg-win-blue   { background-color: var(--win-blue) !important; }
 .cursor-pointer { cursor: pointer; }
+
+/* ── Medications tree view ───────────────────────────────────── */
+.farm-tree {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.farm-tree-node {
+  background: var(--win-white);
+  border: 1px solid var(--win-gray-mid);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+
+.farm-tree-node--inactive {
+  opacity: .75;
+  border-style: dashed;
+}
+
+.farm-tree-header {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .65rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+  flex-wrap: wrap;
+}
+.farm-tree-header:hover {
+  background: var(--win-blue-light);
+}
+
+.farm-tree-toggle { flex-shrink: 0; color: var(--win-gray-dark); }
+.farm-tree-icon   { flex-shrink: 0; font-size: 1.1rem; }
+
+.farm-tree-name {
+  font-weight: 600;
+  font-size: .92rem;
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.farm-tree-sub {
+  font-weight: 400;
+  font-size: .78rem;
+  color: var(--win-gray-dark);
+}
+
+.farm-tree-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+.farm-tree-actions { display: flex; gap: .25rem; flex-shrink: 0; }
+
+/* Chevron animation */
+.farm-chevron {
+  transition: transform .2s ease;
+  display: inline-block;
+}
+.farm-chevron.rotated { transform: rotate(90deg); }
+
+/* Body espandibile */
+.farm-tree-body {}
+.farm-tree-content {
+  padding: 1rem 1.25rem 1rem 2.8rem;
+  border-top: 1px solid var(--win-gray-mid);
+  background: #fafafa;
+}
+
+/* Etichette dettaglio */
+.farm-detail-label {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--win-gray-dark);
+  margin-bottom: .15rem;
+}
+.farm-detail-value {
+  font-size: .875rem;
+  color: #201f1e;
+}
+
+/* Bottone extra-small */
+.btn-xs {
+  padding: .1rem .35rem;
+  font-size: .75rem;
+  border-radius: 3px;
+}

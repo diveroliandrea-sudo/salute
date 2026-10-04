@@ -1,7 +1,7 @@
 <?php
 /**
  * medications/add.php
- * Creazione nuovo farmaco con piani di somministrazione.
+ * Creazione nuovo farmaco con piani di somministrazione e giorni della settimana.
  */
 require_once dirname(__DIR__, 2) . '/includes/config.php';
 requireLogin();
@@ -41,58 +41,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$errore) {
-        $cronico   = isset($_POST['cronico']) ? 1 : 0;
-        $dataFine  = (!$cronico && !empty($_POST['data_fine'])) ? $_POST['data_fine'] : null;
+            $cronico   = isset($_POST['cronico']) ? 1 : 0;
+            $dataFine  = (!$cronico && !empty($_POST['data_fine'])) ? $_POST['data_fine'] : null;
 
-        $ins = db()->prepare(
-            'INSERT INTO farmaci (membro_id, nome_farmaco, principio_attivo, dosaggio, forma,
-             note_assunzione, data_inizio, data_fine, cronico, attivo, note,
-             scontrino_file_nome, scontrino_file_mime, scontrino_file_dati)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $ins->execute([
-            $membro['id'],
-            $nome,
-            trim($_POST['principio_attivo'] ?? '') ?: null,
-            trim($_POST['dosaggio']         ?? '') ?: null,
-            trim($_POST['forma']            ?? '') ?: null,
-            trim($_POST['note_assunzione']  ?? '') ?: null,
-            $_POST['data_inizio']           ?: null,
-            $dataFine,
-            $cronico,
-            1,
-            trim($_POST['note'] ?? '') ?: null,
-            $scontrinoNome,
-            $scontrinoMime,
-            $scontrinoDati,
-        ]);
-        $farmId = (int)db()->lastInsertId();
+            $ins = db()->prepare(
+                'INSERT INTO farmaci (membro_id, nome_farmaco, principio_attivo, dosaggio, forma,
+                 note_assunzione, data_inizio, data_fine, cronico, attivo, note,
+                 scontrino_file_nome, scontrino_file_mime, scontrino_file_dati)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $ins->execute([
+                $membro['id'],
+                $nome,
+                trim($_POST['principio_attivo'] ?? '') ?: null,
+                trim($_POST['dosaggio']         ?? '') ?: null,
+                trim($_POST['forma']            ?? '') ?: null,
+                trim($_POST['note_assunzione']  ?? '') ?: null,
+                $_POST['data_inizio']           ?: null,
+                $dataFine,
+                $cronico,
+                1,
+                trim($_POST['note'] ?? '') ?: null,
+                $scontrinoNome,
+                $scontrinoMime,
+                $scontrinoDati,
+            ]);
+            $farmId = (int)db()->lastInsertId();
 
-        // ── Salva orari di somministrazione ──────────────────
-        $orari = $_POST['orari'] ?? [];
-        $insOra = db()->prepare(
-            'INSERT INTO farmaci_orari (farmaco_id, ora, quantita, note) VALUES (?, ?, ?, ?)'
-        );
-        foreach ($orari as $o) {
-            $ora = trim($o['ora'] ?? '');
-            if ($ora) {
+            // ── Salva orari di somministrazione ──────────────────
+            $orari = $_POST['orari'] ?? [];
+            $insOra = db()->prepare(
+                'INSERT INTO farmaci_orari (farmaco_id, ora, quantita, giorni, note) VALUES (?, ?, ?, ?, ?)'
+            );
+            foreach ($orari as $o) {
+                $ora = trim($o['ora'] ?? '');
+                if (!$ora) continue;
+
+                // Costruisci stringa giorni dai checkbox
+                $giorniSel = $o['giorni'] ?? [];
+                $giorniStr = empty($giorniSel) ? 'tutti' : implode(',', array_map('trim', (array)$giorniSel));
+
                 $insOra->execute([
                     $farmId,
                     $ora,
                     trim($o['quantita'] ?? '1') ?: '1',
+                    $giorniStr,
                     trim($o['note']     ?? '') ?: null,
                 ]);
             }
-        }
 
-        setFlash('success', 'Farmaco «' . $nome . '» aggiunto correttamente.');
-        header('Location: index.php'); exit;
-        } // end if (!$errore)
+            setFlash('success', 'Farmaco «' . $nome . '» aggiunto correttamente.');
+            header('Location: index.php'); exit;
+        }
     }
 }
 
 $pageTitle = 'Aggiungi Farmaco';
 require_once dirname(__DIR__, 2) . '/includes/header.php';
+
+// Etichette giorni usate sia nel form che in edit.php
+$giorniLabels = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 ?>
 <div class="page-titlebar">
   <h1><i class="bi bi-capsule me-2"></i>Aggiungi Farmaco</h1>
@@ -100,7 +108,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 </div>
 
 <div class="row justify-content-center">
-<div class="col-lg-9">
+<div class="col-lg-10">
 <div class="win-card">
   <div class="win-card-header"><i class="bi bi-capsule"></i> Nuovo Farmaco — <?= h($membro['nome'].' '.$membro['cognome']) ?></div>
   <div class="win-card-body">
@@ -109,6 +117,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
       <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
       <input type="hidden" id="orario_count" name="orario_count" value="0">
 
+      <!-- ── Dati farmaco ─────────────────────────────────────── -->
       <div class="row g-3 mb-4">
         <div class="col-md-6">
           <label class="form-label fw-semibold">Nome Farmaco *</label>
@@ -170,28 +179,24 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
         </div>
       </div>
 
-      <!-- ── Orari di somministrazione ──────────────────────── -->
+      <!-- ── Cadenza di somministrazione ─────────────────────── -->
       <hr>
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <h6 class="mb-0"><i class="bi bi-clock me-2"></i>Orari di Somministrazione</h6>
+        <div>
+          <h6 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Cadenza di Somministrazione</h6>
+          <small class="text-muted">Per ogni orario specifica i giorni della settimana. Lascia tutti deselezionati = ogni giorno.</small>
+        </div>
         <button type="button" class="btn btn-sm btn-outline-primary" id="btn_add_orario">
           <i class="bi bi-plus-circle me-1"></i>Aggiungi Orario
         </button>
       </div>
-      <div class="mb-2">
-        <div class="row g-2 mb-1">
-          <div class="col-md-3"><small class="text-muted fw-semibold">Ora</small></div>
-          <div class="col-md-3"><small class="text-muted fw-semibold">Quantità</small></div>
-          <div class="col-md-4"><small class="text-muted fw-semibold">Note Orario</small></div>
-          <div class="col-md-2"></div>
-        </div>
-        <div id="orari_container">
-          <!-- righe aggiunte dinamicamente da app.js -->
-        </div>
-        <p class="text-muted small" id="no_orari_msg">
-          Nessun orario impostato. Clicca «Aggiungi Orario» per aggiungerne uno.
-        </p>
+
+      <div id="orari_container">
+        <!-- righe aggiunte dinamicamente da app.js -->
       </div>
+      <p class="text-muted small" id="no_orari_msg">
+        <i class="bi bi-info-circle me-1"></i>Nessun orario impostato. Clicca «Aggiungi Orario» per aggiungerne uno.
+      </p>
 
       <div class="mt-4 d-flex gap-2">
         <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Salva Farmaco</button>
@@ -204,7 +209,6 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 </div>
 
 <script>
-// Mostra/nascondi messaggio "nessun orario"
 $(document).ready(function(){
   function aggiornaMsg() {
     var n = $('.orario-row').length;

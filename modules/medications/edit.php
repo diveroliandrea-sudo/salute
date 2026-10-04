@@ -1,7 +1,7 @@
 <?php
 /**
  * medications/edit.php
- * Modifica farmaco e relativi orari di somministrazione.
+ * Modifica farmaco e relativi orari di somministrazione con giorni della settimana.
  */
 require_once dirname(__DIR__, 2) . '/includes/config.php';
 requireLogin();
@@ -16,9 +16,9 @@ $f = $stmt->fetch();
 if (!$f) { setFlash('danger','Farmaco non trovato.'); header('Location: index.php'); exit; }
 
 // Orari esistenti
-$orariEsistenti = db()->prepare('SELECT * FROM farmaci_orari WHERE farmaco_id=? ORDER BY ora');
-$orariEsistenti->execute([$id]);
-$orariEsistenti = $orariEsistenti->fetchAll();
+$stmtOrari = db()->prepare('SELECT * FROM farmaci_orari WHERE farmaco_id=? ORDER BY ora');
+$stmtOrari->execute([$id]);
+$orariEsistenti = $stmtOrari->fetchAll();
 
 $errore = '';
 
@@ -52,69 +52,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$errore) {
-        $cronico  = isset($_POST['cronico']) ? 1 : 0;
-        $dataFine = (!$cronico && !empty($_POST['data_fine'])) ? $_POST['data_fine'] : null;
+            $cronico  = isset($_POST['cronico']) ? 1 : 0;
+            $dataFine = (!$cronico && !empty($_POST['data_fine'])) ? $_POST['data_fine'] : null;
 
-        // Costruisce la parte scontrino dell'UPDATE
-        if ($nuovoDati !== null) {
-            // Nuovo file caricato: sostituisce
-            $sqlScontrino = ', scontrino_file_nome=?, scontrino_file_mime=?, scontrino_file_dati=?';
-            $paramsScontrino = [$nuovoNome, $nuovoMime, $nuovoDati];
-        } elseif ($rimuovi) {
-            // Rimozione esplicita
-            $sqlScontrino = ', scontrino_file_nome=NULL, scontrino_file_mime=NULL, scontrino_file_dati=NULL';
-            $paramsScontrino = [];
-        } else {
-            // Nessuna modifica al file
-            $sqlScontrino = '';
-            $paramsScontrino = [];
+            if ($nuovoDati !== null) {
+                $sqlScontrino    = ', scontrino_file_nome=?, scontrino_file_mime=?, scontrino_file_dati=?';
+                $paramsScontrino = [$nuovoNome, $nuovoMime, $nuovoDati];
+            } elseif ($rimuovi) {
+                $sqlScontrino    = ', scontrino_file_nome=NULL, scontrino_file_mime=NULL, scontrino_file_dati=NULL';
+                $paramsScontrino = [];
+            } else {
+                $sqlScontrino    = '';
+                $paramsScontrino = [];
+            }
+
+            $params = [
+                $nome,
+                trim($_POST['principio_attivo'] ?? '') ?: null,
+                trim($_POST['dosaggio']         ?? '') ?: null,
+                trim($_POST['forma']            ?? '') ?: null,
+                trim($_POST['note_assunzione']  ?? '') ?: null,
+                $_POST['data_inizio']           ?: null,
+                $dataFine,
+                $cronico,
+                isset($_POST['attivo']) ? 1 : 0,
+                trim($_POST['note'] ?? '') ?: null,
+                ...$paramsScontrino,
+                $id,
+            ];
+
+            db()->prepare(
+                'UPDATE farmaci SET nome_farmaco=?, principio_attivo=?, dosaggio=?, forma=?,
+                 note_assunzione=?, data_inizio=?, data_fine=?, cronico=?, attivo=?, note=?'
+                . $sqlScontrino .
+                ', updated_at=NOW() WHERE id=?'
+            )->execute($params);
+
+            // Riscrive tutti gli orari
+            db()->prepare('DELETE FROM farmaci_orari WHERE farmaco_id=?')->execute([$id]);
+            $insOra = db()->prepare(
+                'INSERT INTO farmaci_orari (farmaco_id, ora, quantita, giorni, note) VALUES (?,?,?,?,?)'
+            );
+            foreach ($_POST['orari'] ?? [] as $o) {
+                $ora = trim($o['ora'] ?? '');
+                if (!$ora) continue;
+                $giorniSel = $o['giorni'] ?? [];
+                $giorniStr = empty($giorniSel) ? 'tutti' : implode(',', array_map('trim', (array)$giorniSel));
+                $insOra->execute([
+                    $id,
+                    $ora,
+                    trim($o['quantita'] ?? '1') ?: '1',
+                    $giorniStr,
+                    trim($o['note'] ?? '') ?: null,
+                ]);
+            }
+
+            setFlash('success', 'Farmaco aggiornato.');
+            header('Location: index.php'); exit;
         }
-
-        $params = [
-            $nome,
-            trim($_POST['principio_attivo'] ?? '') ?: null,
-            trim($_POST['dosaggio']         ?? '') ?: null,
-            trim($_POST['forma']            ?? '') ?: null,
-            trim($_POST['note_assunzione']  ?? '') ?: null,
-            $_POST['data_inizio']           ?: null,
-            $dataFine,
-            $cronico,
-            isset($_POST['attivo']) ? 1 : 0,
-            trim($_POST['note'] ?? '') ?: null,
-            ...$paramsScontrino,
-            $id,
-        ];
-
-        db()->prepare(
-            'UPDATE farmaci SET nome_farmaco=?, principio_attivo=?, dosaggio=?, forma=?,
-             note_assunzione=?, data_inizio=?, data_fine=?, cronico=?, attivo=?, note=?'
-            . $sqlScontrino .
-            ', updated_at=NOW() WHERE id=?'
-        )->execute($params);
-
-        // Riscrive tutti gli orari
-        db()->prepare('DELETE FROM farmaci_orari WHERE farmaco_id=?')->execute([$id]);
-        $insOra = db()->prepare('INSERT INTO farmaci_orari (farmaco_id, ora, quantita, note) VALUES (?,?,?,?)');
-        foreach ($_POST['orari'] ?? [] as $o) {
-            $ora = trim($o['ora'] ?? '');
-            if ($ora) $insOra->execute([$id, $ora, trim($o['quantita']??'1')?:'1', trim($o['note']??'')?:null]);
-        }
-
-        setFlash('success', 'Farmaco aggiornato.');
-        header('Location: index.php'); exit;
-        } // end if (!$errore)
     }
 }
 
 $pageTitle = 'Modifica Farmaco';
 require_once dirname(__DIR__, 2) . '/includes/header.php';
+
+$giorniLabels = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 ?>
 <div class="page-titlebar">
   <h1><i class="bi bi-capsule me-2"></i>Modifica Farmaco</h1>
   <a href="index.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Indietro</a>
 </div>
 <div class="row justify-content-center">
-<div class="col-lg-9">
+<div class="col-lg-10">
 <div class="win-card">
   <div class="win-card-header"><i class="bi bi-capsule"></i> <?= h($f['nome_farmaco']) ?></div>
   <div class="win-card-body">
@@ -123,6 +132,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
       <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
       <input type="hidden" id="orario_count" name="orario_count" value="<?= count($orariEsistenti) ?>">
 
+      <!-- ── Dati farmaco ─────────────────────────────────────── -->
       <div class="row g-3 mb-4">
         <div class="col-md-6">
           <label class="form-label fw-semibold">Nome Farmaco *</label>
@@ -176,6 +186,7 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
           <label class="form-label fw-semibold">Note</label>
           <textarea name="note" class="form-control" rows="2"><?= h($f['note'] ?? '') ?></textarea>
         </div>
+
         <!-- ── Scontrino / Ricevuta ───────────────────────── -->
         <div class="col-12">
           <label class="form-label fw-semibold"><i class="bi bi-receipt me-1"></i>Scontrino / Ricevuta</label>
@@ -209,39 +220,62 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
         </div>
       </div>
 
+      <!-- ── Cadenza di somministrazione ─────────────────────── -->
       <hr>
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <h6 class="mb-0"><i class="bi bi-clock me-2"></i>Orari di Somministrazione</h6>
+        <div>
+          <h6 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Cadenza di Somministrazione</h6>
+          <small class="text-muted">Per ogni orario specifica i giorni della settimana. Lascia tutti deselezionati = ogni giorno.</small>
+        </div>
         <button type="button" class="btn btn-sm btn-outline-primary" id="btn_add_orario">
           <i class="bi bi-plus-circle me-1"></i>Aggiungi Orario
         </button>
       </div>
-      <div class="row g-2 mb-1">
-        <div class="col-md-3"><small class="text-muted fw-semibold">Ora</small></div>
-        <div class="col-md-3"><small class="text-muted fw-semibold">Quantità</small></div>
-        <div class="col-md-4"><small class="text-muted fw-semibold">Note Orario</small></div>
-        <div class="col-md-2"></div>
-      </div>
+
       <div id="orari_container">
-        <!-- Orari pre-esistenti pre-caricati -->
-        <?php foreach ($orariEsistenti as $i => $o): ?>
-        <div class="row g-2 align-items-center orario-row mb-2" id="orario_row_<?= $i ?>">
-          <div class="col-md-3">
-            <input type="time" name="orari[<?= $i ?>][ora]" class="form-control form-control-sm"
-                   value="<?= h(substr($o['ora'],0,5)) ?>" required>
-          </div>
-          <div class="col-md-3">
-            <input type="text" name="orari[<?= $i ?>][quantita]" class="form-control form-control-sm"
-                   placeholder="Quantità es. 1" value="<?= h($o['quantita']) ?>">
-          </div>
-          <div class="col-md-4">
-            <input type="text" name="orari[<?= $i ?>][note]" class="form-control form-control-sm"
-                   placeholder="Note orario" value="<?= h($o['note'] ?? '') ?>">
-          </div>
-          <div class="col-md-2">
-            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-orario" data-row="<?= $i ?>">
-              <i class="bi bi-trash"></i>
-            </button>
+        <?php foreach ($orariEsistenti as $i => $o):
+          $giorniSalvati = array_map('trim', explode(',', strtolower($o['giorni'] ?? 'tutti')));
+          $isTutti = in_array('tutti', $giorniSalvati) || empty(array_filter($giorniSalvati));
+        ?>
+        <div class="orario-row card mb-3 border-0 bg-light" id="orario_row_<?= $i ?>">
+          <div class="card-body py-2 px-3">
+            <div class="row g-2 align-items-start">
+              <div class="col-md-2">
+                <label class="form-label form-label-sm fw-semibold mb-1">Ora</label>
+                <input type="time" name="orari[<?= $i ?>][ora]" class="form-control form-control-sm"
+                       value="<?= h(substr($o['ora'],0,5)) ?>" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm fw-semibold mb-1">Quantità</label>
+                <input type="text" name="orari[<?= $i ?>][quantita]" class="form-control form-control-sm"
+                       placeholder="es. 1" value="<?= h($o['quantita']) ?>">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label form-label-sm fw-semibold mb-1">Note orario</label>
+                <input type="text" name="orari[<?= $i ?>][note]" class="form-control form-control-sm"
+                       placeholder="es. dopo i pasti" value="<?= h($o['note'] ?? '') ?>">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label form-label-sm fw-semibold mb-1">Giorni</label>
+                <div class="d-flex flex-wrap gap-1">
+                  <?php foreach ($giorniLabels as $g):
+                    $checked = $isTutti || in_array(strtolower($g), $giorniSalvati) ? 'checked' : '';
+                  ?>
+                  <div class="form-check form-check-inline me-0">
+                    <input class="form-check-input" type="checkbox"
+                           name="orari[<?= $i ?>][giorni][]"
+                           id="g_<?= $i ?>_<?= $g ?>"
+                           value="<?= $g ?>" <?= $checked ?>>
+                    <label class="form-check-label small" for="g_<?= $i ?>_<?= $g ?>"><?= $g ?></label>
+                  </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+              <div class="col-md-1 d-flex align-items-end justify-content-end">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-orario"
+                        data-row="<?= $i ?>"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
           </div>
         </div>
         <?php endforeach; ?>
@@ -256,4 +290,5 @@ require_once dirname(__DIR__, 2) . '/includes/header.php';
 </div>
 </div>
 </div>
+
 <?php require_once dirname(__DIR__, 2) . '/includes/footer.php'; ?>
