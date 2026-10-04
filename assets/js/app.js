@@ -15,14 +15,14 @@ var dtDefaults = {
        "<'row mt-2'<'col-sm-5'i><'col-sm-7'p>>",
   buttons: [
     { extend: 'csvHtml5',   text: '<i class="bi bi-filetype-csv"></i> CSV',
-      className: 'btn btn-sm btn-outline-dark' },
+      className: 'btn btn-sm btn-secondary' },
     { extend: 'excelHtml5', text: '<i class="bi bi-file-earmark-excel"></i> Excel',
-      className: 'btn btn-sm btn-outline-success' },
+      className: 'btn btn-sm btn-success' },
     { extend: 'pdfHtml5',   text: '<i class="bi bi-file-earmark-pdf"></i> PDF',
-      className: 'btn btn-sm btn-outline-danger',
+      className: 'btn btn-sm btn-danger',
       orientation: 'landscape', pageSize: 'A4' },
     { extend: 'print',      text: '<i class="bi bi-printer"></i> Stampa',
-      className: 'btn btn-sm btn-outline-dark' }
+      className: 'btn btn-sm btn-dark' }
   ],
   pageLength: 25,
   order: []
